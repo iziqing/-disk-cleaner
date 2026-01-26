@@ -1,185 +1,166 @@
-# Claude Disk Cleaner
+# Claude 磁盘清理器
 
-🧹 **Human-AI Collaborative Disk Cleanup Tool**
+🧹 **人机协作磁盘清理工具**
 
-Leverage **WizTree's fast scanning** + **AI intelligent analysis** to efficiently clean up disk space.
+利用 **WizTree 快速扫描** + **AI 智能分析**，高效清理磁盘空间。
 
-[中文文档](./docs/README_CN.md)
+[English Documentation](./docs/README_EN.md)
 
-## Features
+## 特性
 
-- ⚡ **Fast Scanning**: Uses WizTree's MFT scanning technology
-- 🤖 **AI Analysis**: Intelligently identifies cleanable directories
-- 🎯 **Priority Classification**: High/Medium/Low priority cleanup suggestions
-- 🔒 **Safe Cleanup**: Never deletes system files or user data
-- 🤝 **Human-AI Collaboration**: Two modes for different user preferences
+- ⚡ **极速扫描**：使用 WizTree 的 MFT 扫描技术，秒级完成
+- 🤖 **AI 分析**：智能识别可清理目录，按优先级分类
+- 🎯 **优先级分类**：高/中/低三级清理建议
+- 🔒 **安全清理**：永不删除系统文件和用户数据
+- 🤝 **人机协作**：两种模式满足不同用户需求
 
-## Two Modes
+## 两种模式
 
-### Mode 1: Standard Permission CLI
-
-```
-👤 Human: Scan + Export data
-🤖 AI: Analyze + Generate cleanup script
-👤 Human: Execute cleanup script
-```
-
-Best for: Users who prioritize security
-
-### Mode 2: Admin Permission CLI (Recommended)
+### 模式一：普通权限 CLI
 
 ```
-👤 Human: Just say "clean my disk"
-🤖 AI: Auto scan + Analyze + Execute cleanup
+👤 人类：扫描 + 导出数据
+🤖 AI：分析 + 生成清理脚本
+👤 人类：执行清理脚本
 ```
 
-Best for: Users who prioritize efficiency
+适合：注重安全的用户
 
-## Quick Start
+### 模式二：管理员权限 CLI（推荐）
 
-### Prerequisites
+```
+👤 人类：只需说"帮我清理C盘"
+🤖 AI：自动扫描 + 分析 + 执行清理
+```
 
-- [WizTree](https://diskanalyzer.com/) - Free disk space analyzer
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) - Anthropic's CLI tool
+适合：追求效率的用户
+
+## 快速开始
+
+### 前置要求
+
+- [WizTree](https://diskanalyzer.com/) - 免费磁盘空间分析器
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) - Anthropic 的 CLI 工具
 - Python 3.x
 
-### Installation
+### 安装
 
-1. Clone this repository:
+1. 克隆仓库：
    ```bash
    git clone https://github.com/iziqing/-disk-cleaner.git
    cd -disk-cleaner
    ```
 
-2. Place WizTree in the `WizTree/` directory (or update path in config)
+2. 将 WizTree 放入 `WizTree/` 目录（或修改配置中的路径）
 
-3. Copy command to your project:
+3. 复制命令到你的项目：
    ```bash
-   cp -r .claude/commands/clean-c-drive.md YOUR_PROJECT/.claude/commands/
-   cp -r skills/clean-c-drive YOUR_PROJECT/skills/
+   cp -r .claude/commands/clean-c-drive.md 你的项目/.claude/commands/
+   cp -r skills/clean-c-drive 你的项目/skills/
    ```
 
-### Usage
+### 使用方法
 
-**With Admin Permission (Recommended):**
+**管理员权限模式（推荐）：**
 
 ```powershell
-# Open terminal as Administrator
+# 以管理员身份打开终端
 claude
 
-# Then type:
+# 输入命令：
 /clean-c-drive
 ```
 
-**Without Admin Permission:**
+**普通权限模式：**
 
-1. Run WizTree as Administrator, scan and export CSV
-2. Save to `skills/clean-c-drive/data/`
-3. Run `/clean-c-drive` in Claude Code
+1. 以管理员身份运行 WizTree，扫描并导出 CSV
+2. 保存到 `skills/clean-c-drive/data/`
+3. 在 Claude Code 中运行 `/clean-c-drive`
 
-## What Gets Cleaned
+## 清理内容
 
-### High Priority (Safe to Clean)
-| Category | Description |
-|----------|-------------|
-| Windows Update Cache | `SoftwareDistribution\Download` |
-| NVIDIA Update Cache | `ota-artifacts` |
-| Browser IndexedDB | Video streaming cache |
-| pip/npm/yarn Cache | Package manager cache |
-| Temp Files | Temporary files |
+### 高优先级（安全清理）
+| 类别 | 说明 |
+|------|------|
+| Windows 更新缓存 | `SoftwareDistribution\Download` |
+| NVIDIA 更新缓存 | `ota-artifacts` |
+| 浏览器 IndexedDB | 视频网站缓存 |
+| pip/npm/yarn 缓存 | 包管理器缓存 |
+| 临时文件 | Temp 目录 |
 
-### Medium Priority (Clean with Caution)
-| Category | Description |
-|----------|-------------|
-| App Cache | Various application caches |
-| Log Files | Application logs |
-| GPU Cache | Shader cache |
+### 中优先级（谨慎清理）
+| 类别 | 说明 |
+|------|------|
+| 应用缓存 | 各种应用程序缓存 |
+| 日志文件 | 应用程序日志 |
+| GPU 缓存 | 着色器缓存 |
 
-### Low Priority (Confirm Before Clean)
-| Category | Description |
-|----------|-------------|
-| Gradle Cache | Build cache |
-| Cargo Cache | Rust package cache |
-| Go Modules | Go package cache |
+### 低优先级（需确认）
+| 类别 | 说明 |
+|------|------|
+| Gradle 缓存 | 构建缓存 |
+| Cargo 缓存 | Rust 包缓存 |
+| Go Modules | Go 包缓存 |
 
-## Project Structure
-
-```
--disk-cleaner/
-├── .claude/
-│   └── commands/
-│       └── clean-c-drive.md    # Slash command definition
-├── skills/
-│   └── clean-c-drive/
-│       ├── scan.ps1            # Scan script
-│       ├── analyze.py          # Analysis script
-│       ├── skill.md            # Skill definition
-│       ├── GUIDE.md            # Usage guide
-│       └── data/               # Scan data directory
-├── WizTree/                    # WizTree executable (not included)
-├── LICENSE
-└── README.md
-```
-
-## How It Works
+## 工作原理
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Workflow                                  │
+│                      工作流程                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
-│  │  WizTree    │───▶│  AI Agent   │───▶│   Cleanup   │     │
-│  │  Fast Scan  │    │  Analysis   │    │   Execute   │     │
+│  │  WizTree    │───▶│  AI Agent   │───▶│   执行清理   │     │
+│  │  快速扫描    │    │  智能分析    │    │             │     │
 │  └─────────────┘    └─────────────┘    └─────────────┘     │
 │        │                  │                  │              │
 │        ▼                  ▼                  ▼              │
-│   MFT Scanning      Smart Pattern      Safe Deletion        │
-│   (seconds)         Recognition        with Confirm         │
+│   MFT 扫描          智能模式识别         安全删除           │
+│   (秒级完成)         优先级分类          确认后执行          │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Configuration
+## 配置
 
-### Custom Cleanup Patterns
+### 自定义清理规则
 
-Edit `skills/clean-c-drive/analyze.py`:
+编辑 `skills/clean-c-drive/analyze.py`：
 
 ```python
 CLEANABLE_PATTERNS = {
     "high": {
         "patterns": [
-            {"pattern": "your_pattern", "name": "Description", "safe": True},
+            {"pattern": "你的模式", "name": "描述", "safe": True},
         ]
     }
 }
 ```
 
-### WizTree Path
+### WizTree 路径
 
-Update path in `skills/clean-c-drive/scan.ps1`:
+修改 `skills/clean-c-drive/scan.ps1`：
 
 ```powershell
 param(
-    [string]$WizTreePath = "YOUR_PATH\WizTree64.exe",
+    [string]$WizTreePath = "你的路径\WizTree64.exe",
     ...
 )
 ```
 
-## Contributing
+## 贡献
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+欢迎提交 Pull Request！
 
-## License
+## 许可证
 
-MIT License - see [LICENSE](LICENSE) for details
+MIT License - 详见 [LICENSE](./LICENSE)
 
-## Acknowledgments
+## 致谢
 
-- [WizTree](https://diskanalyzer.com/) - The fastest disk space analyzer
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) - AI-powered CLI tool
+- [WizTree](https://diskanalyzer.com/) - 世界上最快的磁盘空间分析器
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) - AI 驱动的 CLI 工具
 
-## Disclaimer
+## 免责声明
 
-⚠️ **Use at your own risk.** Always review the cleanup report before confirming deletion. The authors are not responsible for any data loss.
+⚠️ **使用风险自负。** 请在确认删除前仔细查看清理报告。作者不对任何数据丢失负责。
