@@ -2,6 +2,8 @@
 
 利用 WizTree 的快速扫描能力和 AI 的智能分析能力，清理 C 盘垃圾文件。
 
+**安全特性：** 支持备份-恢复机制，清理前自动备份，出问题可一键回滚。
+
 ## 工作流程
 
 ### 阶段 1: 检查权限和扫描数据
@@ -56,7 +58,30 @@ python "F:\coding\xianliao\skills\clean-c-drive\analyze.py" "<csv_file>" --min-s
 
 3. **询问用户**：选择清理级别（高/中/低/全部）
 
-### 阶段 4: 执行清理
+### 阶段 4: 备份待清理目录
+
+**在执行任何清理操作之前，必须先备份！**
+
+1. **检查备份驱动器**：
+   ```bash
+   python "F:\coding\xianliao\skills\clean-c-drive\backup.py" drive
+   ```
+   - 自动选择非C盘剩余空间最大的驱动器
+   - 最少需要 5GB 可用空间
+
+2. **创建备份**：
+   ```bash
+   python "F:\coding\xianliao\skills\clean-c-drive\backup.py" create --paths "路径1" "路径2" --priority high
+   ```
+   - 小于 1GB 的目录：直接复制（速度快）
+   - 大于等于 1GB 的目录：压缩备份（节省空间）
+   - 生成 `manifest.json` 记录备份信息
+
+3. **备份失败处理**：
+   - 如果空间不足，提示用户清理其他磁盘或手动选择备份位置
+   - 如果备份失败，中止清理操作
+
+### 阶段 5: 执行清理
 
 **如果有管理员权限：**
 - 直接使用 PowerShell 删除选中的目录
@@ -67,7 +92,29 @@ python "F:\coding\xianliao\skills\clean-c-drive\analyze.py" "<csv_file>" --min-s
 2. 提示用户以管理员权限运行脚本
 3. 显示清理结果
 
-### 阶段 5: 清理临时文件
+### 阶段 6: 验证和确认
+
+清理完成后，询问用户系统是否正常：
+
+```
+清理已完成！请检查系统是否正常运行。
+
+1. 系统正常 → 删除备份，释放空间
+2. 出现问题 → 一键回滚，恢复备份
+3. 稍后决定 → 保留备份，等待验证
+```
+
+**如果用户选择回滚：**
+```bash
+python "F:\coding\xianliao\skills\clean-c-drive\backup.py" restore --id <backup_id>
+```
+
+**如果用户确认正常：**
+```bash
+python "F:\coding\xianliao\skills\clean-c-drive\backup.py" delete --id <backup_id>
+```
+
+### 阶段 7: 清理临时文件
 
 清理任务完成后，询问用户是否删除临时文件：
 ```
@@ -124,6 +171,39 @@ python analyze.py "data/scan_xxx.csv" --json
 python analyze.py "data/scan_xxx.csv" --output "clean.ps1" --priority high
 ```
 
+### backup.py - 备份恢复
+
+功能：
+- 自动选择非C盘最大剩余空间的驱动器
+- 智能备份（小于1GB直接复制，大于1GB压缩）
+- 记录备份清单（manifest.json）
+- 支持一键回滚恢复
+- 支持删除备份释放空间
+
+用法：
+```bash
+# 查看备份驱动器信息
+python backup.py drive
+
+# 创建备份
+python backup.py create --paths "C:\path1" "C:\path2" --priority high
+
+# 查看备份列表
+python backup.py list
+
+# 查看备份详情
+python backup.py info --id backup_20260127_143052
+
+# 回滚恢复
+python backup.py restore --id backup_20260127_143052
+
+# 删除备份
+python backup.py delete --id backup_20260127_143052
+
+# 清理所有备份
+python backup.py cleanup --all
+```
+
 ## 可清理目录定义
 
 ### 高优先级（安全清理）
@@ -173,6 +253,7 @@ F:\coding\xianliao\skills\clean-c-drive\
 ├── skill.md          # Skill 定义（本文件）
 ├── scan.py           # 自动扫描脚本（Python）
 ├── analyze.py        # 分析脚本
+├── backup.py         # 备份恢复脚本（Python）
 ├── README.md         # 项目说明
 ├── GUIDE.md          # 操作指南
 ├── data/             # 扫描数据目录（临时）
@@ -180,6 +261,15 @@ F:\coding\xianliao\skills\clean-c-drive\
 ├── clean_*.ps1       # AI 临时生成的清理脚本（执行后删除）
 └── docs/             # 文档
     └── rust-disk-scanner-spec.md  # Rust 扫描工具规划
+```
+
+**备份目录结构（自动创建在非C盘）：**
+```
+D:\CleanBackups\                    # 或其他非C盘驱动器
+└── backup_20260127_143052\         # 备份目录（时间戳命名）
+    ├── manifest.json               # 备份清单
+    ├── SoftwareDistribution_Download\  # 直接复制的目录
+    └── npm-cache.zip               # 压缩的大目录
 ```
 
 **注意：** `clean_*.ps1` 清理脚本由 AI 根据实际扫描结果临时生成，执行完成后会被清理删除。

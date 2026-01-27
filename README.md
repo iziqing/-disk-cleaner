@@ -1,10 +1,13 @@
 # Claude 磁盘清理器
 
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](./CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
 🧹 **人机协作磁盘清理工具**
 
 利用 **WizTree 快速扫描** + **AI 智能分析**，高效清理磁盘空间。
 
-[English Documentation](./docs/README_EN.md)
+[English Documentation](./docs/README_EN.md) · [更新日志](./CHANGELOG.md)
 
 ---
 
@@ -52,6 +55,7 @@ WizTree 快速扫描（3-5秒）
 | 特点 | 说明 |
 |------|------|
 | 🔒 **安全** | 只清理缓存/临时文件，永不删除系统文件和用户数据 |
+| 🛡️ **可回滚** | 清理前自动备份，出问题一键恢复 |
 | ✨ **简单** | 一条命令 `/clean-c-drive` 搞定一切 |
 | 🤖 **智能** | 给管理员权限 = AI 全自动干完；不给权限 = AI 分析 + 人工执行 |
 
