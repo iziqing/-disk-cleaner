@@ -3,6 +3,8 @@
 [![Version](https://img.shields.io/badge/version-v1.1.0-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
+> ⚠️ **免责声明（请先读我）**：本技能与文档由 AI（Claude Fable 5）自行编写完成，项目实控人未做人工审查（我也不一定全部看得懂）。请使用者仔细阅读本文档和程序源码，充分理解后再使用，以减少使用风险。
+
 🧹 **人机协作磁盘清理工具**
 
 利用 **WizTree 快速扫描** + **AI 智能分析**，高效清理磁盘空间。
