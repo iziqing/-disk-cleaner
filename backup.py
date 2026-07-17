@@ -17,6 +17,8 @@ from typing import List, Dict, Optional
 # 配置
 BACKUP_DIR_NAME = "CleanBackups"
 SIZE_THRESHOLD = 1 * 1024 * 1024 * 1024  # 1GB - 超过此大小使用压缩
+# 优先使用 pwsh（PowerShell 7+）：Windows PowerShell 5.1 的 Compress-Archive 有 4GB 上限且速度慢
+POWERSHELL = shutil.which("pwsh") or "powershell"
 
 
 def format_size(size_bytes: int) -> str:
@@ -192,7 +194,7 @@ def create_backup(paths: List[str], priority: str = "high") -> Dict:
                 Compress-Archive -Path "{path}\\*" -DestinationPath "{backup_path}" -CompressionLevel Optimal -Force
                 '''
                 result = subprocess.run(
-                    ["powershell", "-Command", ps_script],
+                    [POWERSHELL, "-Command", ps_script],
                     capture_output=True,
                     timeout=1800  # 30分钟超时
                 )
@@ -354,7 +356,7 @@ def restore_backup(backup_id: str) -> bool:
                 Expand-Archive -Path "{backup_path}" -DestinationPath "{original_path}" -Force
                 '''
                 result = subprocess.run(
-                    ["powershell", "-Command", ps_script],
+                    [POWERSHELL, "-Command", ps_script],
                     capture_output=True,
                     timeout=1800
                 )

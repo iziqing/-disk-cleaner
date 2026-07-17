@@ -1,6 +1,6 @@
 # Claude 磁盘清理器
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.1.0-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 
 🧹 **人机协作磁盘清理工具**
@@ -57,7 +57,7 @@ WizTree 快速扫描（3-5秒）
 | 🔒 **安全** | 只清理缓存/临时文件，永不删除系统文件和用户数据 |
 | 🛡️ **可回滚** | 清理前自动备份，出问题一键恢复 |
 | ✨ **简单** | 一条命令 `/clean-c-drive` 搞定一切 |
-| 🤖 **智能** | 给管理员权限 = AI 全自动干完；不给权限 = AI 分析 + 人工执行 |
+| 🤖 **智能** | 给管理员权限 = 扫描/执行全自动（清理方案仍需你确认）；不给权限 = AI 分析 + 人工执行 |
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -150,7 +150,7 @@ Agent Skills 代表了 AI 应用架构从"大而全的通用模型"向"精而专
 
 ```
 👤 人类：只需说"帮我清理C盘"
-🤖 AI：自动扫描 + 分析 + 执行清理
+🤖 AI：自动扫描 + 分析 → 你确认方案 → 自动清理
 ```
 
 适合：追求效率的用户
@@ -177,10 +177,12 @@ Agent Skills 代表了 AI 应用架构从"大而全的通用模型"向"精而专
 
 2. 将 WizTree 放入 `WizTree/` 目录（或修改配置中的路径）
 
-3. 复制命令到你的项目：
+3. 安装为 Agent Skill（v1.1 起为标准 SKILL.md 结构）：
    ```bash
-   cp -r .claude/commands/clean-c-drive.md 你的项目/.claude/commands/
-   cp -r skills/clean-c-drive 你的项目/skills/
+   # 用户级安装（推荐，所有项目可用）
+   mkdir -p ~/.claude/skills/clean-c-drive
+   cp -r SKILL.md scan.py analyze.py backup.py references ~/.claude/skills/clean-c-drive/
+   # 或项目级：复制到 你的项目/.claude/skills/clean-c-drive/
    ```
 
 ### 使用方法
@@ -207,8 +209,9 @@ claude
 | 类别 | 说明 |
 |------|------|
 | Windows 更新缓存 | `SoftwareDistribution\Download` |
+| 内核崩溃转储 | `LiveKernelReports` / `Minidump`（实测单文件可达 4.7GB） |
+| Chrome 端侧AI模型 | `OptGuideOnDeviceModel`（约4GB，删后建议禁用对应 flag 防重下） |
 | NVIDIA 更新缓存 | `ota-artifacts` |
-| 浏览器 IndexedDB | 视频网站缓存 |
 | pip/npm/yarn 缓存 | 包管理器缓存 |
 | 临时文件 | Temp 目录 |
 
@@ -225,6 +228,14 @@ claude
 | Gradle 缓存 | 构建缓存 |
 | Cargo 缓存 | Rust 包缓存 |
 | Go Modules | Go 包缓存 |
+| Playwright 浏览器 | 测试浏览器内核，可一键重下 |
+| 浏览器 IndexedDB | 网页应用离线数据/登录状态（v1.1 起从"高"降级：删后网站掉登录甚至丢数据） |
+
+### 安全红线（永不清理）
+
+系统还原点、`Windows\Installer`、`Package Cache` / `InstallerCache`（删了软件无法修复/卸载）、驱动库 DriverStore、用户文档/桌面/图片、微信QQ数据（`Tencent Files` / `xwechat_files`）、`.ssh` 等凭据目录。完整清单见 `references/knowledge.md`。
+
+> 💡 清理完成后建议保留备份 **7 天观察期**——有些问题（如某应用下次启动才报错）当场看不出来。
 
 ## 工作原理
 
@@ -249,7 +260,7 @@ claude
 
 ### 自定义清理规则
 
-编辑 `skills/clean-c-drive/analyze.py`：
+编辑 `analyze.py`：
 
 ```python
 CLEANABLE_PATTERNS = {
@@ -263,13 +274,10 @@ CLEANABLE_PATTERNS = {
 
 ### WizTree 路径
 
-修改 `skills/clean-c-drive/scan.ps1`：
+v1.1 起 `scan.py` 自动探测：环境变量 `WIZTREE_PATH` → 技能目录 `WizTree\` → `Program Files` → PATH。也可直接指定：
 
 ```powershell
-param(
-    [string]$WizTreePath = "你的路径\WizTree64.exe",
-    ...
-)
+$env:WIZTREE_PATH = "你的路径\WizTree64.exe"
 ```
 
 ## 贡献

@@ -91,7 +91,7 @@
 
 1. **以管理员身份打开 WizTree**
    ```
-   F:\coding\xianliao\WizTree\WizTree64.exe
+   找到 WizTree64.exe（安装目录，或技能目录的 WizTree\ 子目录）
    右键 → 以管理员身份运行
    ```
 
@@ -103,9 +103,9 @@
    - 点击菜单 "文件" → "导出"
    - 勾选选项：
      - ✅ 导出文件夹
+     - ✅ 导出文件（重要：内核转储、AI模型等单个巨型文件只有文件行才可见）
      - ✅ 导出驱动器大小信息
-     - ❌ 导出文件（不勾选，减小文件大小）
-   - 保存到：`F:\coding\xianliao\skills\clean-c-drive\data\`
+   - 保存到：技能目录的 `data\` 子目录（**别存C盘**，文件可能有几百MB）
 
 #### 步骤 2：AI 分析（🤖 自动）
 
@@ -119,9 +119,9 @@
 
 1. 查看 AI 生成的清理报告
 2. 选择清理级别（高/中/低）
-3. 以管理员权限运行清理脚本：
+3. 以管理员权限运行清理脚本（生成在技能目录下）：
    ```powershell
-   powershell -ExecutionPolicy Bypass -File "F:\coding\xianliao\skills\clean-c-drive\clean_high.ps1"
+   powershell -ExecutionPolicy Bypass -File "<技能目录>\clean_high.ps1"
    ```
 
 #### 步骤 4：清理临时文件（可选）
@@ -494,7 +494,7 @@ CLEANABLE_PATTERNS = {
 ## WizTree 命令行参数参考
 
 ```powershell
-WizTree64.exe "C:" /export="output.csv" /admin=1 /exportfolders=1 /exportfiles=0 /exportmaxdepth=200
+WizTree64.exe "C:" /export="output.csv" /admin=1 /exportfolders=1 /exportfiles=1 /exportmaxdepth=0
 ```
 
 | 参数 | 说明 |
@@ -502,20 +502,22 @@ WizTree64.exe "C:" /export="output.csv" /admin=1 /exportfolders=1 /exportfiles=0
 | `/admin=1` | 使用管理员模式（MFT 扫描） |
 | `/export="file.csv"` | 导出到 CSV 文件 |
 | `/exportfolders=1` | 导出文件夹 |
-| `/exportfiles=0` | 不导出文件（减小文件大小） |
+| `/exportfiles=1` | 导出文件行（v1.1 起默认开启：4.7GB内核转储、4GB Chrome AI模型这类单个巨型文件只有文件行才可见） |
 | `/exportdrivecapacity=1` | 导出磁盘容量信息 |
 | `/sortby=2` | 按大小排序 |
-| `/exportmaxdepth=200` | 最大文件夹深度（减小文件大小） |
+| `/exportmaxdepth=0` | 最大深度，0=不限制 |
 
-**优化提示：** 设置 `/exportmaxdepth=200` 可以将导出文件从 160MB 减小到 10-20MB，大幅加快分析速度。
+**体积说明：** 全量导出的 CSV 可能有几百MB，analyze.py 流式解析依然很快；确需减小体积可用 `scan.py --folders-only`（旧行为，代价是单个大文件全部隐身）。
 
 ---
 
 ## 文件位置
 
 ```
-F:\coding\xianliao\skills\clean-c-drive\
-├── skill.md           # Skill 行为定义
+<技能目录>（如 ~\.claude\skills\clean-c-drive\）
+├── SKILL.md           # Skill 行为定义
+├── references/
+│   └── knowledge.md   # 安全红线 / 分层惯犯知识库
 ├── scan.py            # 自动扫描脚本（Python）
 ├── analyze.py         # AI 分析脚本
 ├── backup.py          # 备份恢复脚本（Python）

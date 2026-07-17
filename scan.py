@@ -8,13 +8,29 @@ WizTree 自动扫描脚本
 import os
 import sys
 import time
+import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
-# 配置
-WIZTREE_PATH = r"F:\coding\xianliao\WizTree\WizTree64.exe"
-DATA_DIR = r"F:\coding\xianliao\skills\clean-c-drive\data"
+# 配置：相对本脚本所在目录定位，不硬编码绝对路径
+SKILL_DIR = Path(__file__).resolve().parent
+DATA_DIR = str(SKILL_DIR / "data")
+
+
+def find_wiztree():
+    """按优先级探测 WizTree64.exe：环境变量 → 技能目录 → 常见安装位置 → PATH"""
+    candidates = [
+        os.environ.get("WIZTREE_PATH", ""),
+        str(SKILL_DIR / "WizTree" / "WizTree64.exe"),
+        str(SKILL_DIR.parent / "WizTree" / "WizTree64.exe"),
+        r"C:\Program Files\WizTree\WizTree64.exe",
+        r"C:\Program Files (x86)\WizTree\WizTree64.exe",
+    ]
+    for c in candidates:
+        if c and os.path.exists(c):
+            return c
+    return shutil.which("WizTree64.exe") or shutil.which("WizTree64")
 
 
 def check_admin():
@@ -70,14 +86,15 @@ def wait_for_file(filepath, timeout=120, stable_time=2):
     return False
 
 
-def scan(drive="C:", top_folders=300, include_files=False):
+def scan(drive="C:", include_files=True, max_depth=0):
     """
     执行 WizTree 扫描
 
     Args:
         drive: 要扫描的驱动器
-        top_folders: 导出的文件夹数量
-        include_files: 是否包含文件（False 只导出文件夹）
+        include_files: 是否包含文件行（默认 True——单个巨型文件如内核转储/AI模型
+                       只有文件行才可见，这类往往是最大的清理收益）
+        max_depth: 导出最大深度，0=不限制
 
     Returns:
         str: 导出的 CSV 文件路径，失败返回 None
@@ -88,9 +105,11 @@ def scan(drive="C:", top_folders=300, include_files=False):
         print("请以管理员身份运行此脚本")
         return None
 
-    # 检查 WizTree 是否存在
-    if not os.path.exists(WIZTREE_PATH):
-        print(f"错误：找不到 WizTree: {WIZTREE_PATH}")
+    # 探测 WizTree
+    wiztree = find_wiztree()
+    if not wiztree:
+        print("错误：找不到 WizTree64.exe")
+        print(r"请将 WizTree 放到技能目录的 WizTree\ 子目录，或设置环境变量 WIZTREE_PATH")
         return None
 
     # 确保数据目录存在
@@ -108,7 +127,7 @@ def scan(drive="C:", top_folders=300, include_files=False):
     # /exportdrivecapacity=1 - 包含驱动器容量信息
     # /exportmaxdepth=200 - 最大文件夹深度（减小文件大小，加快分析）
     cmd = [
-        WIZTREE_PATH,
+        wiztree,
         drive,
         f'/export={output_file}',
         '/admin=1',
@@ -116,7 +135,7 @@ def scan(drive="C:", top_folders=300, include_files=False):
         f'/exportfiles={1 if include_files else 0}',
         '/sortby=2',
         '/exportdrivecapacity=1',
-        '/exportmaxdepth=200',
+        f'/exportmaxdepth={max_depth}',
     ]
 
     print(f"开始扫描 {drive}")
@@ -224,7 +243,8 @@ def main():
 
     parser = argparse.ArgumentParser(description='WizTree 自动扫描工具')
     parser.add_argument('drive', nargs='?', default='C:', help='要扫描的驱动器 (默认: C:)')
-    parser.add_argument('--include-files', action='store_true', help='包含文件（默认只扫描文件夹）')
+    parser.add_argument('--folders-only', action='store_true', help='只导出文件夹（默认包含文件行，以便发现单个大文件）')
+    parser.add_argument('--max-depth', type=int, default=0, help='导出最大深度，0=不限制 (默认: 0)')
     parser.add_argument('--timeout', type=int, default=120, help='扫描超时时间（秒）')
     parser.add_argument('--latest', action='store_true', help='显示最新的扫描文件')
     parser.add_argument('--cleanup', action='store_true', help='清理旧数据，只保留最新一份')
@@ -250,7 +270,8 @@ def main():
     # 执行扫描
     result = scan(
         drive=args.drive,
-        include_files=args.include_files
+        include_files=not args.folders_only,
+        max_depth=args.max_depth
     )
 
     if result:

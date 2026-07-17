@@ -1,8 +1,18 @@
+---
+name: clean-c-drive
+description: 小白安全清理C盘（Windows）。当用户想清理C盘、磁盘空间不足、系统盘快满了、想安全释放空间时使用。WizTree扫描→模式库+知识库两层分析→清理方案经用户批复→备份后执行→观察期收尾。安全第一，不确定的一律不动。
+---
+
 # /clean-c-drive Skill
 
-利用 WizTree 的快速扫描能力和 AI 的智能分析能力，清理 C 盘垃圾文件。
+利用 WizTree 的快速扫描能力和 AI 的智能分析能力，安全清理 C 盘垃圾文件。
 
-**安全特性：** 支持备份-恢复机制，清理前自动备份，出问题可一键回滚。
+**安全铁律（任何情况下不可违背）：**
+
+1. 不确定用途的文件一律不动；用户说"不认识"的软件 → 列入红线并向用户询问。
+2. **任何权限模式下，清理方案都必须经用户确认后才执行**——管理员权限只是免去手动跑脚本，不免审查（模式库认不出"用户常用但长得像垃圾"的东西）。
+3. 清理前必须备份（backup.py），备份失败则中止清理。
+4. 分析与出方案时必须对照 `references/knowledge.md`（安全红线清单 / 分层惯犯表 / 执行守则）。
 
 ## 工作流程
 
@@ -14,83 +24,62 @@
    ```
 
 2. **如果有管理员权限（返回 True）**：
-   - 检查 `data/` 目录是否有最近的扫描文件
-   - 如果没有或超过 24 小时，自动调用 scan.py 扫描：
+   - 检查技能目录 `data/` 下是否有 24 小时内的扫描文件
+   - 没有则自动扫描（WizTree 路径自动探测：环境变量 `WIZTREE_PATH` → 技能目录 `WizTree\` → Program Files → PATH）：
      ```bash
-     python "F:\coding\xianliao\skills\clean-c-drive\scan.py" C:
+     python "<技能目录>/scan.py" C:
      ```
-   - 等待扫描完成，自动获取数据
 
 3. **如果没有管理员权限（返回 False）**：
-   - 检查 `data/` 目录是否有扫描文件
-   - 如果有，使用现有数据
-   - 如果没有，提示用户：
+   - `data/` 有现成数据就用；没有则提示用户：
      ```
      当前没有管理员权限，无法自动扫描。
-
      请选择：
-     1. 以管理员权限重新启动 Claude Code（推荐，可全自动）
-     2. 手动运行 WizTree 导出数据到 data 目录，然后再次运行此命令
+     1. 以管理员权限重新启动 Claude Code（推荐，扫描/执行全自动）
+     2. 手动以管理员身份运行 WizTree，导出数据到 data 目录后再次运行此命令
+        （导出时"文件"和"文件夹"都要勾选；CSV 别存C盘）
      ```
 
 ### 阶段 2: 分析扫描数据
 
-使用 Python 分析脚本读取 CSV 文件：
-
 ```bash
-python "F:\coding\xianliao\skills\clean-c-drive\analyze.py" "<csv_file>" --min-size 50
+python "<技能目录>/analyze.py" "<csv_file>" --min-size 50
 ```
 
-分析内容：
-- 识别可清理的目录（按优先级分类）
-- 计算潜在可释放空间
-- 生成清理报告
+**两层分析，缺一不可：**
+- **模式库快筛**（analyze.py 自动完成）：识别已知缓存/垃圾目录，按 高🔴/中🟡/低🟢 分级，红线目录已自动排除；
+- **知识库逐案研判**（AI 来做）：模式库实测只能覆盖约 1/3 的可清理空间，剩下的大头——单个巨型转储、Chrome 端侧AI模型、软件多重安装、废弃应用数据、DISM 等系统官方机制可回收的空间——需要对照 `references/knowledge.md` 对目录/大文件排行逐案判断。
+- 预估要保守：WinSxS 与 System32 之间大量硬链接，目录合计大于实际占用是正常现象。
 
-### 阶段 3: 生成清理方案
+### 阶段 3: 生成清理方案（必须等用户批复）
 
-根据分析结果，向用户展示：
-
-1. **磁盘概况**：总容量、已用、可用空间
-2. **可清理目录**（按优先级）：
-   - 🔴 高优先级（安全清理）：临时文件、浏览器缓存、更新缓存等
-   - 🟡 中优先级（谨慎清理）：应用缓存、日志文件等
-   - 🟢 低优先级（需确认）：开发工具缓存等
-
-3. **询问用户**：选择清理级别（高/中/低/全部）
+向用户展示：
+1. **磁盘概况**：总容量、已用、可用
+2. **可清理项分级列表**：每项写清 路径 / 大小 / 是什么 / 删了会怎样 / 清理方式，**逐条编号**方便逐条批复
+3. **红线清单**：明确列出本次绝不碰的内容
+4. 询问用户选择清理级别或逐条批复。**未批复 = 不执行；沉默 ≠ 同意。**
 
 ### 阶段 4: 备份待清理目录
 
 **在执行任何清理操作之前，必须先备份！**
 
-1. **检查备份驱动器**：
+1. 检查备份驱动器（自动选非C盘剩余空间最大的，最少需要 5GB）：
    ```bash
-   python "F:\coding\xianliao\skills\clean-c-drive\backup.py" drive
+   python "<技能目录>/backup.py" drive
    ```
-   - 自动选择非C盘剩余空间最大的驱动器
-   - 最少需要 5GB 可用空间
-
-2. **创建备份**：
+2. 创建备份（小于1GB直接复制，大于等于1GB压缩；生成 manifest.json）：
    ```bash
-   python "F:\coding\xianliao\skills\clean-c-drive\backup.py" create --paths "路径1" "路径2" --priority high
+   python "<技能目录>/backup.py" create --paths "路径1" "路径2" --priority high
    ```
-   - 小于 1GB 的目录：直接复制（速度快）
-   - 大于等于 1GB 的目录：压缩备份（节省空间）
-   - 生成 `manifest.json` 记录备份信息
-
-3. **备份失败处理**：
-   - 如果空间不足，提示用户清理其他磁盘或手动选择备份位置
-   - 如果备份失败，中止清理操作
+   注意：robocopy 备份会保留隐藏/系统属性，核对备份目录时要用 `Get-ChildItem -Force`。
+3. 备份失败（空间不足等）→ **中止清理**，提示用户处理。
 
 ### 阶段 5: 执行清理
 
-**如果有管理员权限：**
-- 直接使用 PowerShell 删除选中的目录
-- 显示清理进度和结果
-
-**如果没有管理员权限：**
-1. 生成清理脚本到 `F:\coding\xianliao\skills\clean-c-drive\clean_<level>.ps1`
-2. 提示用户以管理员权限运行脚本
-3. 显示清理结果
+- **有管理员权限**：按批复方案执行，显示进度和逐项释放量
+- **无管理员权限**：生成 `clean_<level>.ps1` 到技能目录，提示用户以管理员身份运行
+- 执行前检查进程（生成的脚本已内置警告）：浏览器 / VS Code / java（Gradle 守护进程）运行中会导致对应缓存清理不完整
+- 生成的脚本已自动处理：清空目录时保留目录本身、排除 `claude*`（Claude Code 会话自身临时文件）、支持单文件目标
 
 ### 阶段 6: 验证和确认
 
@@ -98,211 +87,40 @@ python "F:\coding\xianliao\skills\clean-c-drive\analyze.py" "<csv_file>" --min-s
 
 ```
 清理已完成！请检查系统是否正常运行。
-
-1. 系统正常 → 删除备份，释放空间
+1. 系统正常 → 建议保留备份观察 7 天再删（有些问题当场看不出来，比如某应用下次启动才报错）
 2. 出现问题 → 一键回滚，恢复备份
 3. 稍后决定 → 保留备份，等待验证
 ```
 
-**如果用户选择回滚：**
-```bash
-python "F:\coding\xianliao\skills\clean-c-drive\backup.py" restore --id <backup_id>
-```
-
-**如果用户确认正常：**
-```bash
-python "F:\coding\xianliao\skills\clean-c-drive\backup.py" delete --id <backup_id>
-```
+- 回滚：`python "<技能目录>/backup.py" restore --id <backup_id>`
+- 观察期满确认删除：`python "<技能目录>/backup.py" delete --id <backup_id>`
 
 ### 阶段 7: 清理临时文件
 
-清理任务完成后，询问用户是否删除临时文件：
-```
-清理已完成！是否删除扫描数据和清理脚本？
-- 删除（推荐，保持目录整洁）
-- 保留
-```
-
-如果用户选择删除，执行：
+清理任务完成后，询问用户是否删除扫描数据和生成的清理脚本：
 ```bash
-python "F:\coding\xianliao\skills\clean-c-drive\scan.py" --cleanup
+python "<技能目录>/scan.py" --cleanup
 ```
-
-将清理以下文件：
-- `data/*.csv` - 扫描数据文件
-- `clean_*.ps1` - 生成的清理脚本
+将清理 `data/*.csv` 和 `clean_*.ps1`。
 
 ## 核心脚本
 
-### scan.py - 自动扫描
+| 脚本 | 职责 | 常用命令 |
+|---|---|---|
+| `scan.py` | WizTree 自动扫描（路径自动探测；默认导出文件行） | `python scan.py C:`、`--latest`、`--cleanup`、`--folders-only` |
+| `analyze.py` | 流式解析 CSV（兼容 GUI/CLI 导出与中英文列名）、模式库分级、生成清理脚本 | `python analyze.py "<csv>" --min-size 50`、`--json`、`--output clean.ps1 --priority high` |
+| `backup.py` | 备份/回滚（manifest.json 清单化） | `drive` / `create` / `list` / `restore` / `delete` |
 
-功能：
-- 检查管理员权限
-- 调用 WizTree 命令行扫描
-- 等待文件生成并稳定
-- 返回扫描结果路径
+## 可清理目录与安全红线
 
-用法：
-```bash
-# 扫描 C 盘
-python scan.py C:
-
-# 查看最新扫描文件
-python scan.py --latest
-```
-
-### analyze.py - 数据分析
-
-功能：
-- 解析 WizTree CSV 文件
-- 按优先级分类可清理目录
-- 生成 JSON 格式报告
-- 生成清理脚本
-
-用法：
-```bash
-# 分析并显示报告
-python analyze.py "data/scan_xxx.csv" --min-size 50
-
-# 输出 JSON 格式
-python analyze.py "data/scan_xxx.csv" --json
-
-# 生成清理脚本
-python analyze.py "data/scan_xxx.csv" --output "clean.ps1" --priority high
-```
-
-### backup.py - 备份恢复
-
-功能：
-- 自动选择非C盘最大剩余空间的驱动器
-- 智能备份（小于1GB直接复制，大于1GB压缩）
-- 记录备份清单（manifest.json）
-- 支持一键回滚恢复
-- 支持删除备份释放空间
-
-用法：
-```bash
-# 查看备份驱动器信息
-python backup.py drive
-
-# 创建备份
-python backup.py create --paths "C:\path1" "C:\path2" --priority high
-
-# 查看备份列表
-python backup.py list
-
-# 查看备份详情
-python backup.py info --id backup_20260127_143052
-
-# 回滚恢复
-python backup.py restore --id backup_20260127_143052
-
-# 删除备份
-python backup.py delete --id backup_20260127_143052
-
-# 清理所有备份
-python backup.py cleanup --all
-```
-
-## 可清理目录定义
-
-### 高优先级（安全清理）
-- Windows 更新缓存: `SoftwareDistribution\Download`
-- NVIDIA 更新缓存: `ota-artifacts`
-- 浏览器 IndexedDB: `IndexedDB`
-- pip 缓存: `pip\cache`
-- npm 缓存: `npm-cache`
-- yarn 缓存: `yarn\cache`
-- puppeteer 缓存: `.cache\puppeteer`
-- electron 缓存: `electron\Cache`
-- 临时文件: `\Temp\`, `\tmp\`
-
-### 中优先级（谨慎清理）
-- 应用缓存: `\Cache\`, `\Caches\`
-- 日志文件: `\Logs\`
-- 崩溃转储: `CrashDumps`
-- GPU 缓存: `GPUCache`, `ShaderCache`
-- Service Worker: `Service Worker`
-- 安装包缓存: `Package Cache`
-
-### 低优先级（需确认）
-- Gradle 缓存: `.gradle\caches`
-- Cargo 缓存: `.cargo\registry`
-- Go Modules: `go\pkg\mod`
-- NuGet 缓存: `.nuget\packages`
-
-## 安全规则
-
-1. **永远不要删除**：
-   - Windows 系统文件 (`\Windows\System32`, `\Windows\WinSxS`)
-   - Program Files 目录
-   - 用户文档和数据
-
-2. **清理前检查**：
-   - 浏览器是否运行（影响浏览器缓存清理）
-   - 是否有管理员权限
-
-3. **用户确认**：
-   - 显示将要删除的目录列表
-   - 等待用户确认后再执行
-
-## 文件结构
-
-```
-F:\coding\xianliao\skills\clean-c-drive\
-├── skill.md          # Skill 定义（本文件）
-├── scan.py           # 自动扫描脚本（Python）
-├── analyze.py        # 分析脚本
-├── backup.py         # 备份恢复脚本（Python）
-├── README.md         # 项目说明
-├── GUIDE.md          # 操作指南
-├── data/             # 扫描数据目录（临时）
-│   └── *.csv         # WizTree 导出的扫描结果
-├── clean_*.ps1       # AI 临时生成的清理脚本（执行后删除）
-└── docs/             # 文档
-    └── rust-disk-scanner-spec.md  # Rust 扫描工具规划
-```
-
-**备份目录结构（自动创建在非C盘）：**
-```
-D:\CleanBackups\                    # 或其他非C盘驱动器
-└── backup_20260127_143052\         # 备份目录（时间戳命名）
-    ├── manifest.json               # 备份清单
-    ├── SoftwareDistribution_Download\  # 直接复制的目录
-    └── npm-cache.zip               # 压缩的大目录
-```
-
-**注意：** `clean_*.ps1` 清理脚本由 AI 根据实际扫描结果临时生成，执行完成后会被清理删除。
+完整定义见两处（修改时保持同步）：
+- `analyze.py` 的 `CLEANABLE_PATTERNS`（模式库）与 `EXCLUDE_PATTERNS`（安全红线）
+- `references/knowledge.md`（完整知识库：红线表 / Tier分层惯犯表 / 惯犯定位正则 / 执行守则）
 
 ## WizTree 命令行参考
 
 ```bash
-WizTree64.exe <drive> /export="<path>" [options]
-
-选项：
-  /admin=1              以管理员模式运行
-  /exportfolders=1      导出文件夹
-  /exportfiles=0        不导出文件（只要文件夹）
-  /sortby=2             按大小排序
-  /exportdrivecapacity=1 包含驱动器容量信息
-  /exportmaxdepth=200   最大文件夹深度（减小文件大小，加快分析）
+WizTree64.exe <drive> /export="<path>" /admin=1 /exportfolders=1 /exportfiles=1 /sortby=2 /exportdrivecapacity=1 /exportmaxdepth=0
 ```
 
-**注意：** 设置 `/exportmaxdepth=200` 可以将导出文件从 160MB 减小到 10-20MB，大幅加快分析速度。
-
-## 使用示例
-
-### 全自动模式（管理员）
-```
-1. 以管理员身份启动 Claude Code
-2. 输入 /clean-c-drive
-3. AI 自动扫描 → 分析 → 询问 → 清理
-```
-
-### 手动模式（无管理员权限）
-```
-1. 手动运行 WizTree，导出 CSV 到 data 目录
-2. 输入 /clean-c-drive
-3. AI 分析现有数据 → 询问 → 生成清理脚本
-4. 用户以管理员身份运行清理脚本
-```
+**为什么默认导出文件行（/exportfiles=1）：** 实测最大的清理收益常来自单个巨型文件——4.7GB 内核转储、4GB Chrome 端侧AI模型、GB 级半成品下载——只导出文件夹时它们全部隐身。CSV 会变大（可能几百MB），analyze.py 流式解析不受影响；确需小体积用 `--folders-only`。
